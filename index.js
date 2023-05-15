@@ -6,8 +6,12 @@ let pokemons = [];
 const updatePaginationDiv = (currentPage, numPages) => {
   $('#pagination').empty()
 
-  const startPage = 1;
-  const endPage = numPages;
+  // set pagination range
+  const rangeSize = 5;
+  const pageRange = getPageRange(currentPage, numPages, rangeSize);
+  const startPage = pageRange[0];
+  const endPage = pageRange[4];
+
 
   // Prev button
   if (currentPage !== 1) {
@@ -132,3 +136,15 @@ const setup = async () => {
 
 
 $(document).ready(setup)
+
+function getPageRange(currentPage, numPages, rangeSize) {
+  var start = Math.max(1, currentPage - Math.floor(rangeSize / 2));
+  var end = Math.min(start + rangeSize - 1, numPages);
+
+  // Adjust start if range is not complete
+  if (end - start + 1 < rangeSize) {
+    start = Math.max(1, end - rangeSize + 1);
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
