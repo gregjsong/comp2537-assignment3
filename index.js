@@ -37,7 +37,10 @@ const updatePaginationDiv = (currentPage, numPages) => {
 }
 
 const paginate = async (currentPage, PAGE_SIZE, pokemons) => {
-  selected_pokemons = pokemons.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  selected_pokemons = pokemons.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  // set num Cards
+  $('#numCards').text(`Showing ${selected_pokemons.length} of ${pokemons.length} Pokemons`);
 
   $('#pokeCards').empty()
   selected_pokemons.forEach(async (pokemon) => {
@@ -66,8 +69,6 @@ const setup = async () => {
   paginate(currentPage, PAGE_SIZE, pokemons)
   const numPages = Math.ceil(pokemons.length / PAGE_SIZE)
   updatePaginationDiv(currentPage, numPages)
-
-
 
   // pop up modal when clicking on a pokemon card
   // add event listener to each pokemon card
