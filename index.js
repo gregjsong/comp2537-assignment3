@@ -25,6 +25,11 @@ const updatePaginationDiv = (currentPage, numPages) => {
   if (currentPage !== numPages) {
     $('#pagination').append(`<button class="btn btn-primary page ml-1 nextButton" value="${currentPage + 1}">Next</button>`);
   }
+
+  // // highlight current page button
+  var button = $('#pagination button[value="' + currentPage + '"]').first();
+  console.log(button);
+  button.removeClass('btn-primary').addClass('btn-outline-primary');
 }
 
 const paginate = async (currentPage, PAGE_SIZE, pokemons) => {
