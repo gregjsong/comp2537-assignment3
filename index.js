@@ -1,7 +1,7 @@
 const PAGE_SIZE = 10
 let currentPage = 1;
 let pokemons = [];
-
+let selectedTypes = [];
 
 const updatePaginationDiv = (currentPage, numPages) => {
   $('#pagination').empty()
@@ -10,11 +10,11 @@ const updatePaginationDiv = (currentPage, numPages) => {
   const rangeSize = 5;
   const pageRange = getPageRange(currentPage, numPages, rangeSize);
   const startPage = pageRange[0];
-  const endPage = pageRange[4];
+  const endPage = pageRange[pageRange.length - 1];
 
 
   // Prev button
-  if (currentPage !== 1) {
+  if (currentPage !== 1 && numPages !== 0) {
     $('#pagination').append(`<button class="btn btn-primary page ml-1 prevButton" value="${currentPage - 1}">Prev</button>`);
   }
 
@@ -26,7 +26,7 @@ const updatePaginationDiv = (currentPage, numPages) => {
   }
 
   // Next button
-  if (currentPage !== numPages) {
+  if (currentPage !== numPages && numPages !== 0) {
     $('#pagination').append(`<button class="btn btn-primary page ml-1 nextButton" value="${currentPage + 1}">Next</button>`);
   }
 
@@ -58,16 +58,27 @@ const paginate = async (currentPage, PAGE_SIZE, pokemons) => {
 }
 
 const setup = async () => {
-  // test out poke api using axios here
+  // set up pokeTypes filter
+  let pokeTypesBox = $('#pokeTypesFilter');
+  pokeTypesBox.empty();
+  let pokeTypesRes = await axios.get('https://pokeapi.co/api/v2/type/');
 
+  const pokeTypes = pokeTypesRes.data.results;
+
+  pokeTypes.forEach((obj) => {
+    pokeTypesBox.append(`<input id="${obj.name}" class="typeFilter" type="checkbox" name="type" value="${obj.name}">`);
+    pokeTypesBox.append(`<label for="${obj.name}">${obj.name}</label>`);
+  });
+
+
+  // test out poke api using axios here
 
   $('#pokeCards').empty()
   let response = await axios.get('https://pokeapi.co/api/v2/pokemon?offset=0&limit=810');
   pokemons = response.data.results;
 
-
+  var numPages = Math.ceil(pokemons.length / PAGE_SIZE);
   paginate(currentPage, PAGE_SIZE, pokemons)
-  const numPages = Math.ceil(pokemons.length / PAGE_SIZE)
   updatePaginationDiv(currentPage, numPages)
 
   // pop up modal when clicking on a pokemon card
@@ -133,19 +144,86 @@ const setup = async () => {
     updatePaginationDiv(currentPage, numPages);
   });
 
+  // add event listener to Types checkboxes
+  $('body').on('change', '.typeFilter', async function () {
+    var isChecked = $(this).is(':checked');
+    var value = $(this).val();
+  
+    if (isChecked) {
+      // set Types array
+      selectedTypes.push(value);
+      handleTypeInputs();
+    } else {
+      selectedTypes = selectedTypes.filter(function (el) {
+        console.log(selectedTypes);
+        return el !== value;
+      });
+      handleTypeInputs();
+    }
+  });
 }
 
 
 $(document).ready(setup)
 
+/* Functions */
 function getPageRange(currentPage, numPages, rangeSize) {
   var start = Math.max(1, currentPage - Math.floor(rangeSize / 2));
   var end = Math.min(start + rangeSize - 1, numPages);
 
-  // Adjust start if range is not complete
-  if (end - start + 1 < rangeSize) {
+  // Adjust start if range is not complete and numPages is greater than rangeSize
+  if (numPages > rangeSize && end - start + 1 < rangeSize) {
     start = Math.max(1, end - rangeSize + 1);
   }
 
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+}
+
+const getNumPages = () => {
+  Math.ceil(pokemons.length / PAGE_SIZE) === 0 ? 1 : Math.ceil(pokemons.length / PAGE_SIZE);
+}
+
+const updatePokeCards = () => {
+  currentPage = 1;
+  numPages = Math.ceil(pokemons.length / PAGE_SIZE)
+  paginate(currentPage, PAGE_SIZE, pokemons);
+  updatePaginationDiv(currentPage, numPages);
+}
+
+const handleTypeInputs = async () => {
+  if (selectedTypes.length === 0) {
+    let response = await axios.get('https://pokeapi.co/api/v2/pokemon?offset=0&limit=810');
+    pokemons = response.data.results;
+    updatePokeCards();
+  } else if (selectedTypes.length === 1) {
+    // fetch
+    var response = await axios.get(`https://pokeapi.co/api/v2/type/${selectedTypes[0]}`);
+
+    // replace old pokemons array
+    var pokemonsArr = response.data.pokemon;
+    pokemons = pokemonsArr.map((obj) => {
+      return obj.pokemon;
+    })
+    // update
+    updatePokeCards();
+  } else if (selectedTypes.length === 2) {
+    // fetch and format res
+    var response = await axios.get(`https://pokeapi.co/api/v2/type/${selectedTypes[1]}`);
+    var pokemonsArr = response.data.pokemon;
+    pokemonsArr2 = pokemonsArr.map((obj) => {
+      return obj.pokemon;
+    });
+    // filter pokemons for matching pokemon from second type array
+    const commonPokemons = pokemons.filter((pokemon1) => {
+      return pokemonsArr2.some((pokemon2)=> 
+        pokemon2.name === pokemon1.name
+      );
+    });
+    pokemons = commonPokemons;
+    // update
+    updatePokeCards();
+  } else if (selectedTypes.length > 2) {
+    pokemons = [];
+    updatePokeCards();
+  }
 }
